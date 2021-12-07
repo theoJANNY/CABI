@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import Vuetify from 'vuetify/lib'
+import Vuetify from 'vuetify'
 import i18n from '@/i18n'
 import '@/sass/overrides.sass'
 
