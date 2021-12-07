@@ -13,7 +13,7 @@
             :chartData="arrTotalNewCases"
             :options="chartOptions"
             :chartColors="totalNewCasesChartColors"
-            label="Total Case"
+            :label="my_labels"
           />
         </div>
       </div>
@@ -27,7 +27,7 @@
             :chartData="arrNewCases"
             :options="chartOptions"
             :chartColors="newCasesChartColors"
-            label="New Case"
+            :label="my_labels"
           />
         </div>
       </div>
@@ -66,7 +66,7 @@
             :chartData="arrNewDeaths"
             :options="chartOptions"
             :chartColors="newDeathsColors"
-            label="New Deaths"
+            :label="my_labels"
           />
         </div>
       </div>
@@ -80,12 +80,12 @@
             :chartData="arrTotalCasesPerMillion"
             :options="chartOptions"
             :chartColors="totalCasesPerMillionColors"
-            label="Total cases per million"
+            :label="my_labels"
           />
         </div>
       </div>
     </v-card>
-    
+
     <v-card>
       <h2 class="text-center">Total deaths per millions</h2>
       <div class="row mt-5 mb-5">
@@ -95,7 +95,7 @@
             :chartData="arrTotalDeathsPerMillion"
             :options="chartOptions"
             :chartColors="totalDeathsPerMillionColors"
-            label="Total deaths per millions"
+            :label="my_labels"
           />
         </div>
       </div>
@@ -107,10 +107,11 @@
 //import axios from "axios";
 import moment from "moment";
 
-import LineChart from "./LineChart";
+import LineChart from "./LineChart.vue";
 import BarChart from "./BarChart";
 import DoughnutChart from "./DoughnutChart";
 import myFile from "./../assets/vaccined.json";
+import { mapGetters } from "vuex";
 
 import Datepicker from "vuejs-datepicker";
 
@@ -173,12 +174,16 @@ export default {
         backgroundColor: "#402A2C",
       },
       chartOptions: {
-        responsive: true,
+        respmonsive: true,
         maintainAspectRatio: false,
       },
+      my_labels: [],
       test: [],
       cpt: 0,
     };
+  },
+  computed: {
+    ...mapGetters("country", { my_country: "getCountry" }),
   },
   methods: {
     onChange() {
@@ -200,31 +205,57 @@ export default {
     },
   },
   async created() {
-    //const { data } = await axios.get("https://covidtracking.com/api/us/daily");
-    myFile.FRA.data.forEach((d) => {
-      const date = moment(d.date, "YYYY-MM-DD").format("YYYY/MM/DD");
-      const {
-        total_cases,
-        new_cases,
-        total_deaths,
-        new_deaths,
-        total_cases_per_million,
-        total_deaths_per_million,
-      } = d;
+    this.my_country.forEach((country) => {
+      this.my_labels.push(myFile[country].location);
+      this.arrTotalNewCases.push([]);
+      this.arrNewCases.push([]);
+      this.arrTotalDeaths.push([]);
+      this.arrNewDeaths.push([]);
+      this.arrTotalCasesPerMillion.push([]);
+      this.arrTotalDeathsPerMillion.push([]);
 
-      this.arrTotalNewCases.unshift({ date, total: total_cases });
-      this.arrNewCases.unshift({ date, total: new_cases });
-      this.arrTotalDeaths.unshift({ date, total: total_deaths });
-      this.arrNewDeaths.unshift({ date, total: new_deaths });
-      this.arrTotalCasesPerMillion.unshift({
-        date,
-        total: total_cases_per_million,
-      });
-      this.arrTotalDeathsPerMillion.unshift({
-        date,
-        total: total_deaths_per_million,
+      myFile[country].data.forEach((d) => {
+        const date = moment(d.date, "YYYY-MM-DD").format("YYYY/MM/DD");
+        const {
+          total_cases,
+          new_cases,
+          total_deaths,
+          new_deaths,
+          total_cases_per_million,
+          total_deaths_per_million,
+        } = d;
+
+        this.arrTotalNewCases[this.arrTotalNewCases.length - 1].unshift({
+          date,
+          total: total_cases,
+        });
+        this.arrNewCases[this.arrNewCases.length - 1].unshift({
+          date,
+          total: new_cases,
+        });
+        this.arrTotalDeaths[this.arrTotalDeaths.length - 1].unshift({
+          date,
+          total: total_deaths,
+        });
+        this.arrNewDeaths[this.arrNewDeaths.length - 1].unshift({
+          date,
+          total: new_deaths,
+        });
+        this.arrTotalCasesPerMillion[
+          this.arrTotalCasesPerMillion.length - 1
+        ].unshift({
+          date,
+          total: total_cases_per_million,
+        });
+        this.arrTotalDeathsPerMillion[
+          this.arrTotalDeathsPerMillion.length - 1
+        ].unshift({
+          date,
+          total: total_deaths_per_million,
+        });
       });
     });
+
     this.cpt = Math.floor((this.date - new Date(2020, 0, 24)) / 86400000);
     this.test = {
       labels: ["deaths", "cases", "population"],

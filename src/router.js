@@ -19,8 +19,8 @@ export default new Router({
         },
         // Pages
         {
-          name: 'User Profile',
-          path: 'pages/user',
+          name: 'Country',
+          path: 'pages/country',
           component: () => import('@/component/pages/UserProfile')
         },
         {

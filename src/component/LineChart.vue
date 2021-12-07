@@ -5,45 +5,59 @@ export default {
   extends: Line,
   props: {
     label: {
-      type: String
+      type: Array,
     },
     chartData: {
-      type: Array
+      type: Array,
     },
     options: {
-      type: Object
+      type: Object,
     },
     chartColors: {
-      type: Object
-    }
+      type: Object,
+    },
   },
   mounted() {
-    const dates = this.chartData.map(d => d.date).reverse();
-    const totals = this.chartData.map(d => d.total).reverse();
+    const dates = this.chartData[0].map((d) => d.date).reverse();
 
-    const {
-      borderColor,
-      pointBorderColor,
-      pointBackgroundColor,
-      backgroundColor
-    } = this.chartColors;
+    const { borderColor } = this.chartColors;
+    this.gradient = [5];
+    this.gradient[0] = this.$refs.canvas
+      .getContext("2d")
+      .createLinearGradient(0, 0, 0, 450);
+    this.gradient[1] = this.$refs.canvas
+      .getContext("2d")
+      .createLinearGradient(0, 0, 0, 450);
+
+    this.gradient[0].addColorStop(0, "rgba(255, 0,0, 0.5)");
+    this.gradient[0].addColorStop(0.5, "rgba(255, 0, 0, 0.25)");
+    this.gradient[0].addColorStop(1, "rgba(255, 0, 0, 0)");
+
+    this.gradient[1].addColorStop(0, "rgba(0, 231, 255, 0.9)");
+    this.gradient[1].addColorStop(0.5, "rgba(0, 231, 255, 0.25)");
+    this.gradient[1].addColorStop(1, "rgba(0, 231, 255, 0)");
+    var parent = this;
+    this.dataset = [];
+    
+    this.chartData.forEach(function (element, index) {
+      var totals = parent.chartData[index].map((d) => d.total).reverse();
+      parent.dataset.push({
+        label: parent.label[index],
+        data: totals,
+        borderColor: borderColor,
+        pointBackgroundColor: "white",
+        pointBorderColor: "black",
+        backgroundColor: parent.gradient[index]
+      });
+    });
 
     this.renderChart(
       {
         labels: dates,
-        datasets: [
-          {
-            label: this.label,
-            data: totals,
-            borderColor: borderColor,
-            pointBorderColor: pointBorderColor,
-            pointBackgroundColor: pointBackgroundColor,
-            backgroundColor: backgroundColor
-          }
-        ]
+        datasets: this.dataset,
       },
       this.options
     );
-  }
+  },
 };
 </script>
