@@ -5,6 +5,34 @@
         <h1 class="text-center">Assignment 3 BI</h1>
       </div>
     </div>
+    <v-row>
+      <v-col col="12" lg="6">
+        <v-card>
+          <v-container>
+            <v-autocomplete
+              v-model="my_country"
+              @change="limiteCategory"
+              :items="country"
+              outlined
+              dense
+              chips
+              small-chips
+              label="Country"
+              multiple
+            />
+          </v-container>
+        </v-card>
+      </v-col>
+      <v-col col="12" lg="6">
+        <v-card>
+          <datepicker
+            @closed="onChange()"
+            v-model="date"
+            :disabled-dates="state.disabledDates"
+          ></datepicker>
+        </v-card>
+      </v-col>
+    </v-row>
     <v-card>
       <h2 class="text-center">Total Case</h2>
       <div class="row mt-5" v-if="arrTotalNewCases.length > 0">
@@ -36,33 +64,25 @@
     <v-card>
       <h2 class="text-center">Total Deaths</h2>
       <div class="row mt-5" v-if="arrTotalDeaths.length > 0">
-        <div class="col">
+        <div class="col" v-for="item in test" :key="item.key">
           <doughnut-chart
-            :chartData="test"
+            v-if="item.exist == 1"
+            :chartData="item"
             :options="chartOptions"
             :chartColors="totalDeathsColors"
             label="Total Deaths"
-            :key="this.cpt"
+            :key="item.key"
           />
+          <h1 v-else>No data found</h1>
         </div>
       </div>
-      <v-col cols="12" lg="2">
-        <v-card>
-          <datepicker
-            @closed="onChange()"
-            v-model="date"
-            :disabled-dates="state.disabledDates"
-          ></datepicker>
-        </v-card>
-      </v-col>
     </v-card>
 
     <v-card>
-      <h2 class="text-center">Total cases per million</h2>
+      <h2 class="text-center">New Deaths</h2>
       <div class="row mt-5" v-if="arrNewDeaths.length > 0">
         <div class="col">
-          <h2 class="text-center">New Deaths</h2>
-          <line-chart
+          <bar-chart
             :chartData="arrNewDeaths"
             :options="chartOptions"
             :chartColors="newDeathsColors"
@@ -111,9 +131,11 @@ import LineChart from "./LineChart.vue";
 import BarChart from "./BarChart";
 import DoughnutChart from "./DoughnutChart";
 import myFile from "./../assets/vaccined.json";
-import { mapGetters } from "vuex";
+import { mapGetters, mapActions } from "vuex";
 
 import Datepicker from "vuejs-datepicker";
+
+console.log(myFile);
 
 export default {
   components: {
@@ -180,31 +202,78 @@ export default {
       my_labels: [],
       test: [],
       cpt: 0,
+      my_country: [],
+      country: [],
     };
   },
   computed: {
-    ...mapGetters("country", { my_country: "getCountry" }),
+    ...mapGetters("country", { countries: "getCountry" }),
   },
   methods: {
-    onChange() {
-      this.cpt = Math.floor((this.date - new Date(2020, 0, 24)) / 86400000);
-      this.test = {
-        labels: ["deaths", "cases", "population"],
-        total: [
-          myFile.FRA.data[this.cpt].total_deaths || 0,
-          myFile.FRA.data[this.cpt].total_cases ||
-            0 - myFile.FRA.data[this.cpt].total_deaths ||
-            0,
-          myFile.FRA.population ||
-            0 - myFile.FRA.data[this.cpt].total_cases ||
-            0 - myFile.FRA.data[this.cpt].total_deaths ||
-            0,
-        ],
-      };
-      console.log(this.test);
+    limiteCategory() {
+      if (this.my_country.length > 4) {
+        this.my_country.pop();
+      }
+      this.setMyCountry(this.my_country);
     },
+    onChange() {
+      this.test = [4];
+      var i = 0;
+      this.my_country.forEach((country) => {
+        this.cpt = Math.floor((this.date - new Date(2020, 0, 24)) / 86400000);
+        this.test[i] = {
+          labels: ["deaths", "cases", "population"],
+          key: (this.test.length + i) * this.cpt,
+          exist: myFile[country].data[this.cpt] ? 1 : 0,
+          total: [
+            myFile[country].data[this.cpt]
+              ? Object.prototype.hasOwnProperty.call(
+                  myFile[country].data[this.cpt],
+                  "total_deaths"
+                )
+                ? myFile[country].data[this.cpt].total_deaths
+                : 0
+              : 0,
+            myFile[country].data[this.cpt]
+              ? (Object.prototype.hasOwnProperty.call(
+                  myFile[country].data[this.cpt],
+                  "total_cases"
+                )
+                  ? myFile[country].data[this.cpt].total_cases
+                  : 0) -
+                (Object.prototype.hasOwnProperty.call(
+                  myFile[country].data[this.cpt],
+                  "total_deaths"
+                )
+                  ? myFile[country].data[this.cpt].total_deaths
+                  : 0)
+              : 0,
+            myFile[country].data[this.cpt]
+              ? (myFile[country].population || 0) -
+                (Object.prototype.hasOwnProperty.call(
+                  myFile[country].data[this.cpt],
+                  "total_cases"
+                )
+                  ? myFile[country].data[this.cpt].total_cases
+                  : 0) -
+                (Object.prototype.hasOwnProperty.call(
+                  myFile[country].data[this.cpt],
+                  "total_deaths"
+                )
+                  ? myFile[country].data[this.cpt].total_deaths
+                  : 0)
+              : 0,
+          ],
+        };
+        i++;
+      });
+    },
+    ...mapActions("country", ["setMyCountry"]),
   },
   async created() {
+    this.country = Object.keys(myFile);
+    this.my_country = this.countries;
+
     this.my_country.forEach((country) => {
       this.my_labels.push(myFile[country].location);
       this.arrTotalNewCases.push([]);
@@ -213,6 +282,53 @@ export default {
       this.arrNewDeaths.push([]);
       this.arrTotalCasesPerMillion.push([]);
       this.arrTotalDeathsPerMillion.push([]);
+
+      this.cpt = Math.floor((this.date - new Date(2020, 0, 24)) / 86400000);
+
+      this.test.push({
+        labels: ["deaths", "cases", "population"],
+        key: this.test.length,
+        exist: myFile[country].data[this.cpt] ? 1 : 0,
+        total: [
+          myFile[country].data[this.cpt]
+            ? Object.prototype.hasOwnProperty.call(
+                myFile[country].data[this.cpt],
+                "total_deaths"
+              )
+              ? myFile[country].data[this.cpt].total_deaths
+              : 0
+            : 0,
+          myFile[country].data[this.cpt]
+            ? (Object.prototype.hasOwnProperty.call(
+                myFile[country].data[this.cpt],
+                "total_cases"
+              )
+                ? myFile[country].data[this.cpt].total_cases
+                : 0) -
+              (Object.prototype.hasOwnProperty.call(
+                myFile[country].data[this.cpt],
+                "total_deaths"
+              )
+                ? myFile[country].data[this.cpt].total_deaths
+                : 0)
+            : 0,
+          myFile[country].data[this.cpt]
+            ? (myFile[country].population || 0) -
+              (Object.prototype.hasOwnProperty.call(
+                myFile[country].data[this.cpt],
+                "total_cases"
+              )
+                ? myFile[country].data[this.cpt].total_cases
+                : 0) -
+              (Object.prototype.hasOwnProperty.call(
+                myFile[country].data[this.cpt],
+                "total_deaths"
+              )
+                ? myFile[country].data[this.cpt].total_deaths
+                : 0)
+            : 0,
+        ],
+      });
 
       myFile[country].data.forEach((d) => {
         const date = moment(d.date, "YYYY-MM-DD").format("YYYY/MM/DD");
@@ -255,22 +371,6 @@ export default {
         });
       });
     });
-
-    this.cpt = Math.floor((this.date - new Date(2020, 0, 24)) / 86400000);
-    this.test = {
-      labels: ["deaths", "cases", "population"],
-      total: [
-        myFile.FRA.data[this.cpt].total_deaths || 0,
-        myFile.FRA.data[this.cpt].total_cases ||
-          0 - myFile.FRA.data[this.cpt].total_deaths ||
-          0,
-        myFile.FRA.population ||
-          0 - myFile.FRA.data[this.cpt].total_cases ||
-          0 - myFile.FRA.data[this.cpt].total_deaths ||
-          0,
-      ],
-    };
-    console.log(this.test);
   },
 };
 </script>
